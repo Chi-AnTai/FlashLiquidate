@@ -921,19 +921,23 @@ contract CToken is CTokenInterface, Exponential, TokenErrorReporter {
      * @return (uint, uint) An error code (0=success, otherwise a failure, see ErrorReporter.sol), and the actual repayment amount.
      */
     function liquidateBorrowInternal(address borrower, uint repayAmount, CTokenInterface cTokenCollateral) internal nonReentrant returns (uint, uint) {
+        console.log('liquidateBorrowInternal');
         uint error = accrueInterest();
         if (error != uint(Error.NO_ERROR)) {
+            console.log('liquidateBorrowInternal 1');
             // accrueInterest emits logs on errors, but we still want to log the fact that an attempted liquidation failed
             return (fail(Error(error), FailureInfo.LIQUIDATE_ACCRUE_BORROW_INTEREST_FAILED), 0);
         }
-
+        console.log('liquidateBorrowInternal 2');
         error = cTokenCollateral.accrueInterest();
+        console.log('liquidateBorrowInternal 3');
         if (error != uint(Error.NO_ERROR)) {
             // accrueInterest emits logs on errors, but we still want to log the fact that an attempted liquidation failed
             return (fail(Error(error), FailureInfo.LIQUIDATE_ACCRUE_COLLATERAL_INTEREST_FAILED), 0);
         }
 
         // liquidateBorrowFresh emits borrow-specific logs on errors, so we don't need to
+        console.log('liquidateBorrowInternal 4');
         return liquidateBorrowFresh(msg.sender, borrower, repayAmount, cTokenCollateral);
     }
 
@@ -948,22 +952,28 @@ contract CToken is CTokenInterface, Exponential, TokenErrorReporter {
      */
     function liquidateBorrowFresh(address liquidator, address borrower, uint repayAmount, CTokenInterface cTokenCollateral) internal returns (uint, uint) {
         /* Fail if liquidate not allowed */
+        console.log('liquidateBorrowFresh');
         uint allowed = comptroller.liquidateBorrowAllowed(address(this), address(cTokenCollateral), liquidator, borrower, repayAmount);
+        console.log('liquidateBorrowFresh 2');
         if (allowed != 0) {
             return (failOpaque(Error.COMPTROLLER_REJECTION, FailureInfo.LIQUIDATE_COMPTROLLER_REJECTION, allowed), 0);
         }
+         console.log('liquidateBorrowFresh 3');
         /* Verify market's block number equals current block number */
         if (accrualBlockNumber != getBlockNumber()) {
             return (fail(Error.MARKET_NOT_FRESH, FailureInfo.LIQUIDATE_FRESHNESS_CHECK), 0);
         }
+         console.log('liquidateBorrowFresh 4');
         /* Verify cTokenCollateral market's block number equals current block number */
         if (cTokenCollateral.accrualBlockNumber() != getBlockNumber()) {
             return (fail(Error.MARKET_NOT_FRESH, FailureInfo.LIQUIDATE_COLLATERAL_FRESHNESS_CHECK), 0);
         }
+         console.log('liquidateBorrowFresh 5');
         /* Fail if borrower = liquidator */
         if (borrower == liquidator) {
             return (fail(Error.INVALID_ACCOUNT_PAIR, FailureInfo.LIQUIDATE_LIQUIDATOR_IS_BORROWER), 0);
         }
+         console.log('liquidateBorrowFresh 6');
         /* Fail if repayAmount = 0 */
         if (repayAmount == 0) {
             return (fail(Error.INVALID_CLOSE_AMOUNT_REQUESTED, FailureInfo.LIQUIDATE_CLOSE_AMOUNT_IS_ZERO), 0);
@@ -984,17 +994,26 @@ contract CToken is CTokenInterface, Exponential, TokenErrorReporter {
         // (No safe failures beyond this point)
 
         /* We calculate the number of collateral tokens that will be seized */
+        console.log('liquidateCalculateSeizeTokens');
         (uint amountSeizeError, uint seizeTokens) = comptroller.liquidateCalculateSeizeTokens(address(this), address(cTokenCollateral), actualRepayAmount);
+         console.log('liquidateCalculateSeizeTokens', seizeTokens);
         require(amountSeizeError == uint(Error.NO_ERROR), "LIQUIDATE_COMPTROLLER_CALCULATE_AMOUNT_SEIZE_FAILED");
-
-        /* Revert if borrower collateral token balance < seizeTokens */
-        require(cTokenCollateral.balanceOf(borrower) >= seizeTokens, "LIQUIDATE_SEIZE_TOO_MUCH");
+        if(cTokenCollateral.isERC721()) {
+            console.log('liquidateCalculateSeizeTokens', cTokenCollateral.balanceOf(borrower));
+            require(cTokenCollateral.balanceOf(borrower) >= (seizeTokens / 1e18), "LIQUIDATE_SEIZE_TOO_MUCH");
+        } else {
+            /* Revert if borrower collateral token balance < seizeTokens */
+            require(cTokenCollateral.balanceOf(borrower) >= seizeTokens, "LIQUIDATE_SEIZE_TOO_MUCH");
+        }
+        // /* Revert if borrower collateral token balance < seizeTokens */
+        // require(cTokenCollateral.balanceOf(borrower) >= seizeTokens, "LIQUIDATE_SEIZE_TOO_MUCH");
 
         // If this is also the collateral, run seizeInternal to avoid re-entrancy, otherwise make an external call
         uint seizeError;
         if (address(cTokenCollateral) == address(this)) {
             seizeError = seizeInternal(address(this), liquidator, borrower, seizeTokens);
         } else {
+            console.log('on seize');
             seizeError = cTokenCollateral.seize(liquidator, borrower, seizeTokens);
         }
 

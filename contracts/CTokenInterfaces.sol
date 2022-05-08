@@ -129,6 +129,8 @@ contract CTokenInterface is CTokenStorage {
      */
     bool public constant isCToken = true;
 
+    bool public constant isERC721 = false;
+
 
     /*** Market Events ***/
 
