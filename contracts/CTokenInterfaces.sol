@@ -129,6 +129,8 @@ contract CTokenInterface is CTokenStorage {
      */
     bool public constant isCToken = true;
 
+    bool public constant isERC721 = false;
+
 
     /*** Market Events ***/
 
@@ -264,7 +266,7 @@ contract CErc20Interface is CErc20Storage {
     function borrow(uint borrowAmount) external returns (uint);
     function repayBorrow(uint repayAmount) external returns (uint);
     function repayBorrowBehalf(address borrower, uint repayAmount) external returns (uint);
-    function liquidateBorrow(address borrower, uint repayAmount, CTokenInterface cTokenCollateral) external returns (uint);
+    function liquidateBorrow(address borrower, uint repayAmount, CTokenInterface cTokenCollateral, uint tokenId) external returns (uint);
     function sweepToken(EIP20NonStandardInterface token) external;
 
 

@@ -373,6 +373,8 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
         }
 
         (Error err, , uint shortfall) = getHypotheticalAccountLiquidityInternal(borrower, CToken(cToken), 0, borrowAmount);
+        console.log('borrow allowed');
+        console.log(uint(err));
         if (err != Error.NO_ERROR) {
             return uint(err);
         }
@@ -739,14 +741,12 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
             }
             vars.collateralFactor = Exp({mantissa: markets[address(asset)].collateralFactorMantissa});
             vars.exchangeRate = Exp({mantissa: vars.exchangeRateMantissa});
-
             // Get the normalized price of the asset
             vars.oraclePriceMantissa = oracle.getUnderlyingPrice(asset);
             if (vars.oraclePriceMantissa == 0) {
                 return (Error.PRICE_ERROR, 0, 0);
             }
             vars.oraclePrice = Exp({mantissa: vars.oraclePriceMantissa});
-            // console.log('oraclePrice', vars.oraclePriceMantissa);
             // console.log('collateralFactor', markets[address(asset)].collateralFactorMantissa);
             // console.log('exchangeRate', vars.exchangeRateMantissa);
             // Pre-compute a conversion factor from tokens -> ether (normalized price value)
