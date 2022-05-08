@@ -6,6 +6,7 @@ const { parseEther, formatEther } = utils;
 
 const mintAmount = parseEther('100')
 const oraclePrice = parseEther('3000')
+const tokenId = 10;
 
 async function deployComptroller() {
     const comptrollerContract = await hre.ethers.getContractFactory("Comptroller");
@@ -53,7 +54,7 @@ async function deployOracle(erc20Address, erc721Address) {
 async function deployErc721(deployer) {
     const erc721Contract = await hre.ethers.getContractFactory("ERC721");
     const erc721 = await erc721Contract.deploy()
-    await erc721.mint(0);
+    await erc721.mint(tokenId);
     const mintAmount = await erc721.balanceOf(deployer.address)
     console.log('erc721 address', erc721.address)
     console.log('mintAmount', mintAmount)
@@ -80,19 +81,19 @@ describe("Deploy Test", function () {
     let erc721
     let cErc721
 
-    async function checkLiquidation() {
-        let deployerLiquidity = await comptroller.getAccountLiquidity(deployer.address)
-        if (deployerLiquidity[2].gt(0)) {
-            console.log('on check liquidity: liquidity is not enough, must liquidate')
-            let balanceBeforeLiquidate = await cETH.balanceOf(deployer.address)
-            await cerc20.connect(depositor2).liquidateBorrow(deployer.address, mintAmount.div(5), cETH.address)
-            let balanceAfterLiquidate = await cETH.balanceOf(deployer.address)
-            console.log('balanceBeforeLiquidate', formatEther(balanceBeforeLiquidate))
-            console.log('balanceAfterLiquidate', formatEther(balanceAfterLiquidate))
-        } else {
-            console.log('on check liquidity: liquidity is sufficient')
-        }
-    }
+    // async function checkLiquidation() {
+    //     let deployerLiquidity = await comptroller.getAccountLiquidity(deployer.address)
+    //     if (deployerLiquidity[2].gt(0)) {
+    //         console.log('on check liquidity: liquidity is not enough, must liquidate')
+    //         let balanceBeforeLiquidate = await cETH.balanceOf(deployer.address)
+    //         await cerc20.connect(depositor2).liquidateBorrow(deployer.address, mintAmount.div(5), cETH.address)
+    //         let balanceAfterLiquidate = await cETH.balanceOf(deployer.address)
+    //         console.log('balanceBeforeLiquidate', formatEther(balanceBeforeLiquidate))
+    //         console.log('balanceAfterLiquidate', formatEther(balanceAfterLiquidate))
+    //     } else {
+    //         console.log('on check liquidity: liquidity is sufficient')
+    //     }
+    // }
 
     this.beforeAll("Set accounts", async () => {
         // get deployer account
@@ -153,8 +154,8 @@ describe("Deploy Test", function () {
     })
 
     it("Able to mint cErc721", async function () {
-        await erc721.approve(cErc721.address, 0)
-        await cErc721.mint(0)
+        await erc721.approve(cErc721.address, tokenId)
+        await cErc721.mint(tokenId)
     })
 
     it("Able to borrow", async function () {
@@ -177,7 +178,7 @@ describe("Deploy Test", function () {
     })
 
     it('liquidate borrow', async () => {
-        await cerc20.connect(depositor2).liquidateBorrow(deployer.address, mintAmount.div(5), cErc721.address)
+        await cerc20.connect(depositor2).liquidateBorrow(deployer.address, mintAmount.div(5), cErc721.address, tokenId)
         const cErc721Depositor2Balance = await cErc721.balanceOf(depositor2.address)
         console.log('cErc721Depositor2Balance', cErc721Depositor2Balance);
         console.log('Liquidate succuess')

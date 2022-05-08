@@ -110,8 +110,8 @@ contract CErc20 is CToken, CErc20Interface {
      * @param cTokenCollateral The market in which to seize collateral from the borrower
      * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
      */
-    function liquidateBorrow(address borrower, uint repayAmount, CTokenInterface cTokenCollateral) external returns (uint) {
-        (uint err,) = liquidateBorrowInternal(borrower, repayAmount, cTokenCollateral);
+    function liquidateBorrow(address borrower, uint repayAmount, CTokenInterface cTokenCollateral, uint tokenId) external returns (uint) {
+        (uint err,) = liquidateBorrowInternal(borrower, repayAmount, cTokenCollateral, tokenId);
         return err;
     }
 

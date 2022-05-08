@@ -38,7 +38,7 @@ contract CERC721 is ERC721 {
     }
 
     function seize(address liquidator, address borrower, uint tokenId) external returns (uint) {
-        _transferFrom(borrower, liquidator, 0);
+        _transferFrom(borrower, liquidator, tokenId);
     }
 
     function onERC721Received(address _operator, address _from, uint256 _tokenId, bytes calldata _data) external returns(bytes4) {
