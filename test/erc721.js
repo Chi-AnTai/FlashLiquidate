@@ -153,6 +153,7 @@ describe("Deploy Test", function () {
     })
 
     it("Able to mint cErc721", async function () {
+        await erc721.approve(cErc721.address, 0)
         await cErc721.mint(0)
     })
 
@@ -177,5 +178,8 @@ describe("Deploy Test", function () {
 
     it('liquidate borrow', async () => {
         await cerc20.connect(depositor2).liquidateBorrow(deployer.address, mintAmount.div(5), cErc721.address)
+        const cErc721Depositor2Balance = await cErc721.balanceOf(depositor2.address)
+        console.log('cErc721Depositor2Balance', cErc721Depositor2Balance);
+        console.log('Liquidate succuess')
     })
 });

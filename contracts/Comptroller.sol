@@ -725,7 +725,6 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
         CToken cTokenModify,
         uint redeemTokens,
         uint borrowAmount) internal view returns (Error, uint, uint) {
-            console.log('getHypotheticalAccountLiquidityInternal');
 
         AccountLiquidityLocalVars memory vars; // Holds all our calculation results
         uint oErr;
@@ -734,32 +733,24 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
         CToken[] memory assets = accountAssets[account];
         for (uint i = 0; i < assets.length; i++) {
             CToken asset = assets[i];
-            console.log('asset', address(asset));
 
             // Read the balances and exchange rate from the cToken
             (oErr, vars.cTokenBalance, vars.borrowBalance, vars.exchangeRateMantissa) = asset.getAccountSnapshot(account);
             if (oErr != 0) { // semi-opaque error code, we assume NO_ERROR == 0 is invariant between upgrades
                 return (Error.SNAPSHOT_ERROR, 0, 0);
             }
-            console.log('getHypotheticalAccountLiquidityInternal 1');
             vars.collateralFactor = Exp({mantissa: markets[address(asset)].collateralFactorMantissa});
             vars.exchangeRate = Exp({mantissa: vars.exchangeRateMantissa});
-            console.log('getHypotheticalAccountLiquidityInternal 2');
             // Get the normalized price of the asset
             vars.oraclePriceMantissa = oracle.getUnderlyingPrice(asset);
-            console.log('getHypotheticalAccountLiquidityInternal 3');
             if (vars.oraclePriceMantissa == 0) {
-                console.log('getHypotheticalAccountLiquidityInternal 4');
                 return (Error.PRICE_ERROR, 0, 0);
             }
-            console.log('getHypotheticalAccountLiquidityInternal 5');
             vars.oraclePrice = Exp({mantissa: vars.oraclePriceMantissa});
-            console.log('getHypotheticalAccountLiquidityInternal price', vars.oraclePriceMantissa);
             // console.log('collateralFactor', markets[address(asset)].collateralFactorMantissa);
             // console.log('exchangeRate', vars.exchangeRateMantissa);
             // Pre-compute a conversion factor from tokens -> ether (normalized price value)
             vars.tokensToDenom = mul_(mul_(vars.collateralFactor, vars.exchangeRate), vars.oraclePrice);
-            console.log('getHypotheticalAccountLiquidityInternal 6');
             // console.log('tokensToDenom', mul_(vars.collateralFactor, vars.exchangeRate).mantissa);
             // console.log('tokensToDenom', vars.tokensToDenom.mantissa);
             // sumCollateral += tokensToDenom * cTokenBalance
@@ -767,32 +758,25 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
             // console.log('sumCollateral', vars.sumCollateral);
             // sumBorrowPlusEffects += oraclePrice * borrowBalance
             vars.sumBorrowPlusEffects = mul_ScalarTruncateAddUInt(vars.oraclePrice, vars.borrowBalance, vars.sumBorrowPlusEffects);
-            console.log('getHypotheticalAccountLiquidityInternal 7');
             // console.log('sumBorrowPlusEffects', vars.sumBorrowPlusEffects);
             // Calculate effects of interacting with cTokenModify
             if (asset == cTokenModify) {
-                console.log('getHypotheticalAccountLiquidityInternal 8 ');
                 // redeem effect
                 // sumBorrowPlusEffects += tokensToDenom * redeemTokens
                 vars.sumBorrowPlusEffects = mul_ScalarTruncateAddUInt(vars.tokensToDenom, redeemTokens, vars.sumBorrowPlusEffects);
-                console.log('getHypotheticalAccountLiquidityInternal 9 ');
 
                 // borrow effect
                 // sumBorrowPlusEffects += oraclePrice * borrowAmount
                 vars.sumBorrowPlusEffects = mul_ScalarTruncateAddUInt(vars.oraclePrice, borrowAmount, vars.sumBorrowPlusEffects);
-                console.log('getHypotheticalAccountLiquidityInternal 10');
             }
         }
 
         // These are safe, as the underflow condition is checked first
         if (vars.sumCollateral > vars.sumBorrowPlusEffects) {
-            console.log('getHypotheticalAccountLiquidityInternal 11');
             return (Error.NO_ERROR, vars.sumCollateral - vars.sumBorrowPlusEffects, 0);
         } else {
-            console.log('getHypotheticalAccountLiquidityInternal 12');
             return (Error.NO_ERROR, 0, vars.sumBorrowPlusEffects - vars.sumCollateral);
         }
-        console.log('getHypotheticalAccountLiquidityInternal 13 ');
     }
 
     /**

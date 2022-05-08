@@ -33,10 +33,15 @@ contract CERC721 is ERC721 {
     }
 
     function mint(uint256 tokenId) public {
+        IERC721(underlying).safeTransferFrom(msg.sender, address(this), tokenId);
         _safeMint(msg.sender, tokenId);
     }
 
-    function seize(address liquidator, address borrower, uint seizeTokens) external returns (uint) {
+    function seize(address liquidator, address borrower, uint tokenId) external returns (uint) {
         _transferFrom(borrower, liquidator, 0);
+    }
+
+    function onERC721Received(address _operator, address _from, uint256 _tokenId, bytes calldata _data) external returns(bytes4) {
+        return 0x150b7a02;
     }
 }
